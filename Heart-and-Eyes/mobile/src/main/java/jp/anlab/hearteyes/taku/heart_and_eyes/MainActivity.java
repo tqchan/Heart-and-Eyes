@@ -1,5 +1,7 @@
 package jp.anlab.hearteyes.taku.heart_and_eyes;
 
+import android.content.DialogInterface;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.os.Environment;
@@ -9,6 +11,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.WindowManager;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -24,13 +27,18 @@ import com.google.android.gms.wearable.MessageApi;
 import com.google.android.gms.wearable.Node;
 import com.google.android.gms.wearable.NodeApi;
 import com.google.android.gms.wearable.Wearable;
+//import com.jins_jp.meme.MemeLib;
+//import com.jins_jp.meme.MemeScanListener;
+//import com.jins_jp.meme.MemeStatus;
 
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.List;
 
+import com.jins_jp.meme.*;
 
 public class MainActivity extends AppCompatActivity implements GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener,  DataApi.DataListener {
 
@@ -75,6 +83,11 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
 
     Toolbar toolBar;
 
+    // JiNSMEME
+    MemeLib memeLib;
+    List<String> scannedAddresses;
+    MemeDataItemAdapter dataItemAdapter;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -85,6 +98,9 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
 //        }
 
         initialize();
+        if (savedInstanceState == null){
+            jinsinit();
+        }
 
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
@@ -98,6 +114,8 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
         toolbarIniti();
 
     }
+
+
 
     private void toolbarIniti() {
         toolBar = (Toolbar) findViewById(R.id.toolbar);
@@ -158,11 +176,105 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
         int id = item.getItemId();
 
         //noinspection SimplifiableIfStatement
-        if (id == R.id.action_settings) {
-            return true;
+        switch (id) {
+            case R.id.action_settings:
+                break;
+            case R.id.action_scan:
+                if (!memeLib.isScanning()){
+                    jinsmemeScan();
+                } else if (memeLib.isScanning()) {
+                    memeLib.stopScan();
+                    scannedAddresses.clear();
+                }
+                break;
+            case R.id.action_disconnect:
+                memeLib.disconnect();
+                break;
         }
-
         return super.onOptionsItemSelected(item);
+    }
+
+    private void jinsmemeScan() {
+        if (memeLib.isScanning()) {
+            return;
+        }
+//        scannedAddresses = new ArrayList<>();
+//        scannedAddressAdapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, scannedAddresses);
+        MemeStatus status = memeLib.startScan(new MemeScanListener() {
+            @Override
+            public void memeFoundCallback(String address) {
+                scannedAddresses.add(address);
+//                Log.d(TAG, scannedAddresses.get(0));
+                if (scannedAddresses.size() == 0) {
+                    Toast.makeText(MainActivity.this, "JiNSMEME not found", Toast.LENGTH_SHORT).show();
+                } else {
+        //            // TODO: 2016/04/13 ダイアログイベント
+        //            Log.d(TAG, "jins found");
+                    final String[] items = (String[]) scannedAddresses.toArray(new String[0]);
+                    new AlertDialog.Builder(MainActivity.this)
+                        .setTitle("Select JiNSMEME")
+                        .setItems(items, new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
+                                // item_which pressed
+                                Log.d(TAG, "" + which);
+                                memeLib.setMemeConnectListener(new MemeConnectListener() {
+                                    @Override
+                                    public void memeConnectCallback(boolean status) {
+                                        memeLib.startDataReport(memeRealtimeListener);
+                                    }
+
+                                    @Override
+                                    public void memeDisconnectCallback() {
+                                        Toast.makeText(MainActivity.this, "Disconnected", Toast.LENGTH_SHORT).show();
+                                    }
+                                });
+                                memeLib.connect(items[which]);
+                            }
+                        })
+                        .show();
+        }
+            }
+        });
+        if (status == MemeStatus.MEME_ERROR_APP_AUTH) {
+            Toast.makeText(this, "App Auth Failed", Toast.LENGTH_LONG).show();
+        }
+    }
+
+    // TODO: 2016/04/13 JiNSMEME DATA
+    final MemeRealtimeListener memeRealtimeListener = new MemeRealtimeListener() {
+    @Override
+    public void memeRealtimeCallback(final MemeRealtimeData memeRealtimeData) {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+//                setSupportProgressBarIndeterminateVisibility(true);
+//                dataItemAdapter.updateMemeData(memeRealtimeData);
+//                dataItemAdapter.notifyDataSetChanged();
+//                setSupportProgressBarIndeterminateVisibility(false);
+                jinsmemeData(memeRealtimeData);
+            }
+        });
+    }
+};
+
+    private void jinsmemeData(MemeRealtimeData memeRealtimeData) {
+        Log.d("fit_status", "" + memeRealtimeData.getFitError());
+        Log.d("walking", "" + memeRealtimeData.isWalking());
+        Log.d("noise_status", "" + memeRealtimeData.isNoiseStatus());
+        Log.d("power_left", "" + memeRealtimeData.getPowerLeft());
+        Log.d("eye_move_up", "" + memeRealtimeData.getEyeMoveUp());
+        Log.d("eye_move_down", "" + memeRealtimeData.getEyeMoveDown());
+        Log.d("eye_move_left", "" + memeRealtimeData.getEyeMoveLeft());
+        Log.d("eye_move_right", "" + memeRealtimeData.getEyeMoveRight());
+        Log.d("blink_streangth", "" + memeRealtimeData.getBlinkStrength());
+        Log.d("blink_speed", "" + memeRealtimeData.getBlinkSpeed());
+        Log.d("roll", "" + memeRealtimeData.getRoll());
+        Log.d("pitch", "" + memeRealtimeData.getPitch());
+        Log.d("yaw", "" + memeRealtimeData.getYaw());
+        Log.d("acc_x", "" + memeRealtimeData.getAccX());
+        Log.d("acc_y", "" + memeRealtimeData.getAccY());
+        Log.d("acc_z", "" + memeRealtimeData.getAccZ());
     }
 
     // TODO: 2016/04/07 output csv
@@ -255,6 +367,14 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
         blinkArray = new ArrayList<Integer>();
         blinkgraph.createChart(blinkArray, "まばたき");
 
+
+    }
+
+    private void jinsinit() {
+        MemeLib.setAppClientID(getApplicationContext(), appClientId, appClientSecret);
+//        MemeLib.setAppClientID(this, appClientId, appClientSecret);
+        memeLib = MemeLib.getInstance();
+        scannedAddresses = new ArrayList<>();
     }
 
     @Override

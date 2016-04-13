@@ -35,12 +35,12 @@ public class GraphView extends Graph {
     /**
      * グラフ生成
      */
-    public void createChart(ArrayList<Integer> wellnessArray) {
+    public void createChart(ArrayList<Integer> wellnessArray, String title) {
         // X軸の定義
         NumberAxis domainAxis = new NumberAxis("時間");
 
         // Y軸の定義
-        NumberAxis rangeAxis = new NumberAxis("心拍数");
+        NumberAxis rangeAxis = new NumberAxis(title);
 
         // XY軸のタイトルのフォント設定
         // 種類、大きさ

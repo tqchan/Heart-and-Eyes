@@ -5,7 +5,7 @@ android {
     buildToolsVersion "24.0.0 rc2"
 
     defaultConfig {
-        applicationId "jp.anlab.hearteyes.taku.heart_and_eyes"
+        applicationId "jp.anlab.hearteyes.taku.myapplication"
         minSdkVersion 19
         targetSdkVersion 23
         versionCode 1
@@ -21,11 +21,9 @@ android {
 
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
-    wearApp project(':wear')
     testCompile 'junit:junit:4.12'
     compile 'com.android.support:appcompat-v7:23.3.0'
     compile 'com.android.support:design:23.3.0'
     compile 'com.google.android.gms:play-services:8.4.0'
     compile files('libs/afreechart-0.0.4.jar')
-    compile files('libs/MemeLib.jar')
 }

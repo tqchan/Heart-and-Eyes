@@ -1,18 +1,24 @@
-package jp.anlab.hearteyes.taku.heart_and_eyes;
+package jp.anlab.hearteyes.taku.myapplication;
 
-import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.os.Environment;
+import android.support.design.widget.FloatingActionButton;
+import android.support.design.widget.Snackbar;
+import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
+import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.view.View;
 import android.view.WindowManager;
 import android.widget.Button;
-import android.widget.TextView;
-import android.widget.Toast;
 import android.widget.ViewFlipper;
+
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.util.ArrayList;
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
@@ -24,13 +30,6 @@ import com.google.android.gms.wearable.MessageApi;
 import com.google.android.gms.wearable.Node;
 import com.google.android.gms.wearable.NodeApi;
 import com.google.android.gms.wearable.Wearable;
-
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.util.ArrayList;
-
 
 public class MainActivity extends AppCompatActivity implements GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener,  DataApi.DataListener {
 
@@ -54,9 +53,9 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
 //    XYSeries series;
 //    AFreeChart chart;
 
-    GraphView heartbeatgraph;
+//    GraphView heartbeatgraph;
     ArrayList<Integer> wellnessArray;
-    GraphView blinkgraph;
+//    GraphView blinkgraph;
     ArrayList<Integer> blinkArray;
 
     ArrayList<Integer> outWellnessArray;
@@ -71,18 +70,22 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
     Button prebutton;
     Button nextbutton;
     int graphTitleJudge;
-//    TextView graphTitleText;
-
-    Toolbar toolBar;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-//        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
-//        if (toolbar != null) {
-//            setSupportActionBar(toolbar);
-//        }
+        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+
+//        FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
+//        fab.setOnClickListener(new View.OnClickListener() {
+//            @Override
+//            public void onClick(View view) {
+//                Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
+//                        .setAction("Action", null).show();
+//            }
+//        });
 
         initialize();
 
@@ -93,31 +96,28 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
                 .addConnectionCallbacks(this)
                 .addOnConnectionFailedListener(this)
                 .build();
-
-        // toobarの初期化&設定
-        toolbarIniti();
-
     }
 
-    private void toolbarIniti() {
-        toolBar = (Toolbar) findViewById(R.id.toolbar);
-        setSupportActionBar(toolBar);
-        // titleの設定
-//        toolBar.setTitle(R.string.app_name);
-//        toolbar.setNavigationIcon(R.drawable.);
-//        toolBar.setNavigationOnClickListener(new View.OnClickListener() {
-//            @Override
-//            public void onClick(View v) {
-//
-//            }
-//        });
-//        toolBar.inflateMenu(R.menu.menu_main);
-//        toolBar.setOnMenuItemClickListener(new Toolbar.OnMenuItemClickListener(){
-//            @Override
-//            public boolean onMenuItemClick(MenuItem item) {
-//                return false;
-//            }
-//        });
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        // Inflate the menu; this adds items to the action bar if it is present.
+        getMenuInflater().inflate(R.menu.menu_main, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        // Handle action bar item clicks here. The action bar will
+        // automatically handle clicks on the Home/Up button, so long
+        // as you specify a parent activity in AndroidManifest.xml.
+        int id = item.getItemId();
+
+        //noinspection SimplifiableIfStatement
+        if (id == R.id.action_settings) {
+            return true;
+        }
+
+        return super.onOptionsItemSelected(item);
     }
 
     @Override
@@ -142,27 +142,6 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
             Wearable.DataApi.removeListener(googleApiClient, this);
             googleApiClient.disconnect();
         }
-    }
-
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        getMenuInflater().inflate(R.menu.menu_main, menu);
-        return true;
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
-        int id = item.getItemId();
-
-        //noinspection SimplifiableIfStatement
-        if (id == R.id.action_settings) {
-            return true;
-        }
-
-        return super.onOptionsItemSelected(item);
     }
 
     // TODO: 2016/04/07 output csv
@@ -198,62 +177,62 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
 
     private void initialize() {
 
-        startWearableActivityBtn = (Button)findViewById(R.id.start_wearable_activity);
-        startWearableActivityBtn.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if (!wearlableAppRunning) {
-                    new StartWearableActivityThread().start();
-                    wearlableAppRunning = true;
-                    startWearableActivityBtn.setText("Graph Drawing");
-                } else if (wearlableAppRunning) {
-                    // TODO: 2016/04/12 グラフの描画開始
-                    graphDrawing = true;
-                }
-            }
-        });
-
-        finishWearableActivityBtn = (Button)findViewById(R.id.finish_wearable_activity);
-        finishWearableActivityBtn.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                new FinishWearableActivityThread().start();
-                fileOutPut();
-            }
-        });
-
-        viewFlipper = (ViewFlipper)findViewById(R.id.viewFlipper);
-//        graphTitleText = (TextView)findViewById(R.id.textView2);
-        graphTitleJudge = 0;
-//        graphTitle();
-
-        prebutton = (Button)findViewById(R.id.prebtn);
-        prebutton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                viewFlipper.showPrevious();
-            }
-        });
-
-        nextbutton = (Button)findViewById(R.id.nextbtn);
-        nextbutton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                viewFlipper.showNext();
-            }
-        });
-
-
-        heartbeatgraph = (GraphView) findViewById(R.id.graphview);
-        // 初期化
-        // グラフに表示するデータを生成
-        wellnessArray = new ArrayList<Integer>();
-        // グラフを生成
-        heartbeatgraph.createChart(wellnessArray, "心拍数");
-
-        blinkgraph = (GraphView)findViewById(R.id.blinkgraph);
-        blinkArray = new ArrayList<Integer>();
-        blinkgraph.createChart(blinkArray, "まばたき");
+//        startWearableActivityBtn = (Button)findViewById(R.id.start_wearable_activity);
+//        startWearableActivityBtn.setOnClickListener(new View.OnClickListener() {
+//            @Override
+//            public void onClick(View v) {
+//                if (!wearlableAppRunning) {
+//                    new StartWearableActivityThread().start();
+//                    wearlableAppRunning = true;
+//                    startWearableActivityBtn.setText("Graph Drawing");
+//                } else if (wearlableAppRunning) {
+//                    // TODO: 2016/04/12 グラフの描画開始
+//                    graphDrawing = true;
+//                }
+//            }
+//        });
+//
+//        finishWearableActivityBtn = (Button)findViewById(R.id.finish_wearable_activity);
+//        finishWearableActivityBtn.setOnClickListener(new View.OnClickListener() {
+//            @Override
+//            public void onClick(View v) {
+//                new FinishWearableActivityThread().start();
+//                fileOutPut();
+//            }
+//        });
+//
+//        viewFlipper = (ViewFlipper)findViewById(R.id.viewFlipper);
+////        graphTitleText = (TextView)findViewById(R.id.textView2);
+//        graphTitleJudge = 0;
+////        graphTitle();
+//
+//        prebutton = (Button)findViewById(R.id.prebtn);
+//        prebutton.setOnClickListener(new View.OnClickListener() {
+//            @Override
+//            public void onClick(View v) {
+//                viewFlipper.showPrevious();
+//            }
+//        });
+//
+//        nextbutton = (Button)findViewById(R.id.nextbtn);
+//        nextbutton.setOnClickListener(new View.OnClickListener() {
+//            @Override
+//            public void onClick(View v) {
+//                viewFlipper.showNext();
+//            }
+//        });
+//
+//
+//        heartbeatgraph = (GraphView) findViewById(R.id.graphview);
+//        // 初期化
+//        // グラフに表示するデータを生成
+//        wellnessArray = new ArrayList<Integer>();
+//        // グラフを生成
+//        heartbeatgraph.createChart(wellnessArray, "心拍数");
+//
+//        blinkgraph = (GraphView)findViewById(R.id.blinkgraph);
+//        blinkArray = new ArrayList<Integer>();
+//        blinkgraph.createChart(blinkArray, "まばたき");
 
     }
 
@@ -296,8 +275,8 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
     private void drawGraph(int anInt, long aLong) {
         if (graphDrawing) {
             wellnessArray.add(anInt);
-            heartbeatgraph.createChart(wellnessArray, "心拍数");
-            heartbeatgraph.invalidate();
+//            heartbeatgraph.createChart(wellnessArray, "心拍数");
+//            heartbeatgraph.invalidate();
         }
     }
 

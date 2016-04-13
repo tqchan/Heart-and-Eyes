@@ -1,19 +1,34 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:orientation="vertical"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     tools:context="jp.anlab.hearteyes.taku.heart_and_eyes.MainActivity">
 
 
-    <android.support.v7.widget.Toolbar
-        android:id="@+id/toolbar"
+    <!--<android.support.v7.widget.Toolbar-->
+        <!--android:id="@+id/toolbar"-->
+        <!--android:layout_width="match_parent"-->
+        <!--android:layout_height="wrap_content"-->
+        <!--android:minHeight="?attr/actionBarSize"-->
+        <!--android:background="?attr/colorPrimary"-->
+        <!--app:theme="@style/ThemeOverlay.AppCompat.ActionBar"/>-->
+
+    <android.support.design.widget.AppBarLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:minHeight="?attr/actionBarSize"
-        android:background="?attr/colorPrimary" />
+        android:theme="@style/AppTheme.AppBarOverlay">
+
+        <android.support.v7.widget.Toolbar
+            android:id="@+id/toolbar"
+            android:minHeight="?attr/actionBarSize"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="?attr/colorPrimary" />
+
+    </android.support.design.widget.AppBarLayout>
 
     <LinearLayout
         android:orientation="horizontal"
@@ -40,46 +55,44 @@
     <LinearLayout
         android:orientation="horizontal"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content" >
+        android:layout_height="match_parent" >
 
         <Button
             android:layout_width="30dp"
-            android:layout_height="30dp"
+            android:layout_height="match_parent"
             android:id="@+id/prebtn"
             android:layout_gravity="center_horizontal"
-            android:background="@drawable/prebtn" />
+            android:background="@drawable/prebtn2"/>
 
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="New Text"
-            android:id="@+id/textView2"
-            android:layout_gravity="center"
-            android:gravity="center"
-            android:layout_weight="1"
-            android:textSize="20sp" />
+        <!--<LinearLayout-->
+            <!--android:orientation="vertical"-->
+            <!--android:layout_width="match_parent"-->
+            <!--android:layout_height="match_parent"-->
+            <!--android:layout_weight="1">-->
+
+            <ViewFlipper
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:id="@+id/viewFlipper"
+                android:layout_weight="1">
+                <include
+                    android:id="@+id/hertbeat_layout"
+                    layout="@layout/heartbeat" />
+                <include
+                    android:id="@+id/blink_layout"
+                    layout="@layout/blink" />
+
+            </ViewFlipper>
+        <!--</LinearLayout>-->
 
         <Button
             android:layout_width="30dp"
-            android:layout_height="30dp"
-            android:background="@drawable/nextbtn"
+            android:layout_height="match_parent"
+            android:background="@drawable/nextbtn2"
             android:id="@+id/nextbtn"
             android:layout_gravity="center_horizontal" />
+
     </LinearLayout>
-
-    <ViewFlipper
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:id="@+id/viewFlipper"
-        android:layout_weight="1">
-        <include
-            android:id="@+id/hertbeat_layout"
-            layout="@layout/heartbeat" />
-        <include
-            android:id="@+id/blink_layout"
-            layout="@layout/blink" />
-
-    </ViewFlipper>
 
 </LinearLayout>

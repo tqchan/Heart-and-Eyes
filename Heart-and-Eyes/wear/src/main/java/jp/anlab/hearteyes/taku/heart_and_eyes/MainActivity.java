@@ -88,6 +88,7 @@ public class MainActivity extends Activity implements SensorEventListener, Googl
                 .addConnectionCallbacks(this)
                 .addOnConnectionFailedListener(this)
                 .build();
+        Log.d(TAG, "");
     }
 
     @Override

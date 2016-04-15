@@ -35,7 +35,7 @@ public class GraphView extends Graph {
     /**
      * グラフ生成
      */
-    public void createChart(ArrayList<Integer> wellnessArray, String title) {
+    public void createChart(ArrayList<Integer> wellnessArray, String title, double Ymin, double Ymax) {
         // X軸の定義
         NumberAxis domainAxis = new NumberAxis("時間");
 
@@ -79,7 +79,7 @@ public class GraphView extends Graph {
 
         // y軸のレンジ
         ValueAxis yAxis = plot.getRangeAxis();
-        yAxis.setRange(40.0d, 150.0d);
+        yAxis.setRange(Ymin, Ymax);
 
         // X軸のレンジ
         ValueAxis xAxis = plot.getDomainAxis();

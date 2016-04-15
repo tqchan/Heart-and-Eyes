@@ -79,23 +79,18 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
     Button prebutton;
     Button nextbutton;
     int graphTitleJudge;
-//    TextView graphTitleText;
 
     Toolbar toolBar;
 
     // JiNSMEME
     MemeLib memeLib;
     List<String> scannedAddresses;
-    MemeDataItemAdapter dataItemAdapter;
+    int blinkTimes = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-//        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
-//        if (toolbar != null) {
-//            setSupportActionBar(toolbar);
-//        }
 
         initialize();
         if (savedInstanceState == null){
@@ -115,27 +110,9 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
 
     }
 
-
-
     private void toolbarIniti() {
         toolBar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolBar);
-        // titleの設定
-//        toolBar.setTitle(R.string.app_name);
-//        toolbar.setNavigationIcon(R.drawable.);
-//        toolBar.setNavigationOnClickListener(new View.OnClickListener() {
-//            @Override
-//            public void onClick(View v) {
-//
-//            }
-//        });
-//        toolBar.inflateMenu(R.menu.menu_main);
-//        toolBar.setOnMenuItemClickListener(new Toolbar.OnMenuItemClickListener(){
-//            @Override
-//            public boolean onMenuItemClick(MenuItem item) {
-//                return false;
-//            }
-//        });
     }
 
     @Override
@@ -198,13 +175,10 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
         if (memeLib.isScanning()) {
             return;
         }
-//        scannedAddresses = new ArrayList<>();
-//        scannedAddressAdapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, scannedAddresses);
         MemeStatus status = memeLib.startScan(new MemeScanListener() {
             @Override
             public void memeFoundCallback(String address) {
                 scannedAddresses.add(address);
-//                Log.d(TAG, scannedAddresses.get(0));
                 if (scannedAddresses.size() == 0) {
                     Toast.makeText(MainActivity.this, "JiNSMEME not found", Toast.LENGTH_SHORT).show();
                 } else {
@@ -217,13 +191,11 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
                             @Override
                             public void onClick(DialogInterface dialog, int which) {
                                 // item_which pressed
-                                Log.d(TAG, "" + which);
                                 memeLib.setMemeConnectListener(new MemeConnectListener() {
                                     @Override
                                     public void memeConnectCallback(boolean status) {
                                         memeLib.startDataReport(memeRealtimeListener);
                                     }
-
                                     @Override
                                     public void memeDisconnectCallback() {
                                         Toast.makeText(MainActivity.this, "Disconnected", Toast.LENGTH_SHORT).show();
@@ -231,9 +203,8 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
                                 });
                                 memeLib.connect(items[which]);
                             }
-                        })
-                        .show();
-        }
+                        }).show();
+                }
             }
         });
         if (status == MemeStatus.MEME_ERROR_APP_AUTH) {
@@ -243,20 +214,16 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
 
     // TODO: 2016/04/13 JiNSMEME DATA
     final MemeRealtimeListener memeRealtimeListener = new MemeRealtimeListener() {
-    @Override
-    public void memeRealtimeCallback(final MemeRealtimeData memeRealtimeData) {
-        runOnUiThread(new Runnable() {
-            @Override
-            public void run() {
-//                setSupportProgressBarIndeterminateVisibility(true);
-//                dataItemAdapter.updateMemeData(memeRealtimeData);
-//                dataItemAdapter.notifyDataSetChanged();
-//                setSupportProgressBarIndeterminateVisibility(false);
-                jinsmemeData(memeRealtimeData);
-            }
-        });
-    }
-};
+        @Override
+        public void memeRealtimeCallback(final MemeRealtimeData memeRealtimeData) {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    jinsmemeData(memeRealtimeData);
+                }
+            });
+        }
+    };
 
     private void jinsmemeData(MemeRealtimeData memeRealtimeData) {
         Log.d("fit_status", "" + memeRealtimeData.getFitError());
@@ -275,6 +242,9 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
         Log.d("acc_x", "" + memeRealtimeData.getAccX());
         Log.d("acc_y", "" + memeRealtimeData.getAccY());
         Log.d("acc_z", "" + memeRealtimeData.getAccZ());
+        if (memeRealtimeData.getBlinkSpeed() > 0){
+            blinkTimes++;
+        }
     }
 
     // TODO: 2016/04/07 output csv
@@ -309,7 +279,6 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
 
 
     private void initialize() {
-
         startWearableActivityBtn = (Button)findViewById(R.id.start_wearable_activity);
         startWearableActivityBtn.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -335,9 +304,7 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
         });
 
         viewFlipper = (ViewFlipper)findViewById(R.id.viewFlipper);
-//        graphTitleText = (TextView)findViewById(R.id.textView2);
         graphTitleJudge = 0;
-//        graphTitle();
 
         prebutton = (Button)findViewById(R.id.prebtn);
         prebutton.setOnClickListener(new View.OnClickListener() {
@@ -356,23 +323,24 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
         });
 
 
+        /**
+         *
+         * @param createChart(ArrayList, GraphTitle, Ymin, Ymax)
+         */
         heartbeatgraph = (GraphView) findViewById(R.id.graphview);
         // 初期化
         // グラフに表示するデータを生成
         wellnessArray = new ArrayList<Integer>();
         // グラフを生成
-        heartbeatgraph.createChart(wellnessArray, "心拍数");
+        heartbeatgraph.createChart(wellnessArray, "心拍数", 40.0d, 150.0d);
 
         blinkgraph = (GraphView)findViewById(R.id.blinkgraph);
         blinkArray = new ArrayList<Integer>();
-        blinkgraph.createChart(blinkArray, "まばたき");
-
-
+        blinkgraph.createChart(blinkArray, "まばたき", 0.0d, 10.0d);
     }
 
     private void jinsinit() {
         MemeLib.setAppClientID(getApplicationContext(), appClientId, appClientSecret);
-//        MemeLib.setAppClientID(this, appClientId, appClientSecret);
         memeLib = MemeLib.getInstance();
         scannedAddresses = new ArrayList<>();
     }
@@ -398,10 +366,8 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
             // TYPE_DELETEDがデータ削除時、TYPE_CHANGEDがデータ登録・変更時
             if (event.getType() == DataEvent.TYPE_DELETED) {
                 Log.d("TAG", "DataItem deleted: " + event.getDataItem().getUri());
-
             } else if (event.getType() == DataEvent.TYPE_CHANGED) {
                 Log.d("TAG", "DataItem changed: " + event.getDataItem().getUri());
-
                 // 更新されたデータを取得する
                 DataMap dataMap = DataMap.fromByteArray(event.getDataItem().getData());
 //                data = dataMap.getInt("key");
@@ -416,13 +382,15 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
     private void drawGraph(int anInt, long aLong) {
         if (graphDrawing) {
             wellnessArray.add(anInt);
-            heartbeatgraph.createChart(wellnessArray, "心拍数");
+            heartbeatgraph.createChart(wellnessArray, "心拍数", 40.0d, 150.0d);
             heartbeatgraph.invalidate();
+            blinkArray.add(blinkTimes);
+            blinkgraph.createChart(blinkArray, "まばたき", 0.0d, 10.0d);
+            blinkgraph.invalidate();
         }
     }
 
     private class StartWearableActivityThread extends Thread{
-
         public void run() {
             NodeApi.GetConnectedNodesResult nodesResult = Wearable.NodeApi.getConnectedNodes(googleApiClient).await();
             for (Node node : nodesResult.getNodes()) {
@@ -438,7 +406,6 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
     }
 
     private class FinishWearableActivityThread extends Thread{
-
         public void run() {
             NodeApi.GetConnectedNodesResult nodesResult = Wearable.NodeApi.getConnectedNodes(googleApiClient).await();
             for (Node node : nodesResult.getNodes()) {

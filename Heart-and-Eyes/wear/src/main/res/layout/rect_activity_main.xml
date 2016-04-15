@@ -7,10 +7,10 @@
     tools:context="jp.anlab.hearteyes.taku.heart_and_eyes.MainActivity"
     tools:deviceIds="wear_square">
 
-    <Space
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_weight="1"/>
+    <!--<Space-->
+        <!--android:layout_width="wrap_content"-->
+        <!--android:layout_height="wrap_content"-->
+        <!--android:layout_weight="1"/>-->
 
     <TextView
         android:layout_width="match_parent"

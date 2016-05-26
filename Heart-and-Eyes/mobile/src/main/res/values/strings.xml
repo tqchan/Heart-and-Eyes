@@ -3,6 +3,7 @@
     <string name="action_scan">Scan</string>
     <string name="action_stop">Scan Stop</string>
     <string name="action_settings">Setting</string>
+    <string name="action_disconnect">Disconnect</string>
 
     <string name="fit_status">Fit Status</string>
     <string name="walking">Walking</string>
@@ -20,5 +21,8 @@
     <string name="acc_x">Acc X</string>
     <string name="acc_y">Acc Y</string>
     <string name="acc_z">Acc Z</string>
-    <string name="action_disconnect">Disconnect</string>
+    <string name="heartbeat">HeartBeat</string>
+    <string name="blink">Blink</string>
+    <string name="nod">Nod</string>
+
 </resources>

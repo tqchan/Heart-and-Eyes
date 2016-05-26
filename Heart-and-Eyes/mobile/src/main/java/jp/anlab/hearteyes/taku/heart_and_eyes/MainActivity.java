@@ -1,6 +1,9 @@
 package jp.anlab.hearteyes.taku.heart_and_eyes;
 
+import android.content.Context;
 import android.content.DialogInterface;
+import android.os.CountDownTimer;
+import android.os.Handler;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -11,9 +14,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.WindowManager;
-import android.widget.ArrayAdapter;
 import android.widget.Button;
-import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.ViewFlipper;
 
@@ -27,9 +28,6 @@ import com.google.android.gms.wearable.MessageApi;
 import com.google.android.gms.wearable.Node;
 import com.google.android.gms.wearable.NodeApi;
 import com.google.android.gms.wearable.Wearable;
-//import com.jins_jp.meme.MemeLib;
-//import com.jins_jp.meme.MemeScanListener;
-//import com.jins_jp.meme.MemeStatus;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -37,6 +35,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Timer;
+import java.util.TimerTask;
 
 import com.jins_jp.meme.*;
 
@@ -58,16 +58,14 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
     boolean wearlableAppRunning = false;
     boolean graphDrawing = false;
 
-//    XYSeriesCollection dataset;
-//    XYSeries series;
-//    AFreeChart chart;
-
     GraphView heartbeatgraph;
-    ArrayList<Integer> wellnessArray;
+    ArrayList<Integer> heartbeatArray;
     GraphView blinkgraph;
     ArrayList<Integer> blinkArray;
+    GraphView nodsgraph;
+    ArrayList<Integer> nodsArray;
 
-    ArrayList<Integer> outWellnessArray;
+    ArrayList<Integer> outheartbeatArray;
     ArrayList<Long> outTimeArray;
 
     long utc;
@@ -86,6 +84,27 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
     MemeLib memeLib;
     List<String> scannedAddresses;
     int blinkTimes = 0;
+    float roll;
+    float pitch;
+    float yaw;
+    float acc_x;
+    float acc_y;
+    float acc_z;
+    double _pitch;
+    float maxPitch = -50;
+    double _maxPitch = -50;
+    int _nodtimes = 0;
+    int nodtimes = 0;
+    /**
+     * スキャンの時間 10 * 1000
+     */
+    final CountDown countDown = new CountDown(10000, 1000);
+
+    int heartbaets = 0;
+
+    Timer timer;
+    TimerTask timertask;
+    boolean timerrunning = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -108,6 +127,9 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
         // toobarの初期化&設定
         toolbarIniti();
 
+
+        timer = new Timer();
+        timertask = new MyTimerTask(this);
     }
 
     private void toolbarIniti() {
@@ -119,8 +141,7 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
     protected void onResume() {
         super.onResume();
         googleApiClient.connect();
-//        wellnessArray = new ArrayList<Integer>();
-        outWellnessArray = new ArrayList<>();
+        outheartbeatArray = new ArrayList<>();
         outTimeArray = new ArrayList<>();
         utc = System.currentTimeMillis();
         File file = new File(Environment.getExternalStorageDirectory(), this.getPackageName());
@@ -146,10 +167,18 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
     }
 
     @Override
+    public boolean onPrepareOptionsMenu(Menu menu) {
+        if (memeLib.isScanning()) {
+            menu.findItem(R.id.action_scan).setTitle("stop scan");
+        } else {
+            menu.findItem(R.id.action_scan).setTitle("scan");
+        }
+
+        return super.onPrepareOptionsMenu(menu);
+    }
+
+    @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
         int id = item.getItemId();
 
         //noinspection SimplifiableIfStatement
@@ -159,9 +188,13 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
             case R.id.action_scan:
                 if (!memeLib.isScanning()){
                     jinsmemeScan();
+                    invalidateOptionsMenu();
+                    countDown.start();
                 } else if (memeLib.isScanning()) {
+                    invalidateOptionsMenu();
                     memeLib.stopScan();
                     scannedAddresses.clear();
+                    countDown.onFinish();
                 }
                 break;
             case R.id.action_disconnect:
@@ -182,8 +215,7 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
                 if (scannedAddresses.size() == 0) {
                     Toast.makeText(MainActivity.this, "JiNSMEME not found", Toast.LENGTH_SHORT).show();
                 } else {
-        //            // TODO: 2016/04/13 ダイアログイベント
-        //            Log.d(TAG, "jins found");
+                    // TODO: 2016/04/13 ダイアログイベント
                     final String[] items = (String[]) scannedAddresses.toArray(new String[0]);
                     new AlertDialog.Builder(MainActivity.this)
                         .setTitle("Select JiNSMEME")
@@ -195,6 +227,8 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
                                     @Override
                                     public void memeConnectCallback(boolean status) {
                                         memeLib.startDataReport(memeRealtimeListener);
+                                        memeLib.stopScan();
+                                        invalidateOptionsMenu();
                                     }
                                     @Override
                                     public void memeDisconnectCallback() {
@@ -242,8 +276,34 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
         Log.d("acc_x", "" + memeRealtimeData.getAccX());
         Log.d("acc_y", "" + memeRealtimeData.getAccY());
         Log.d("acc_z", "" + memeRealtimeData.getAccZ());
+
+        /**
+         *まばたき
+         */
         if (memeRealtimeData.getBlinkSpeed() > 0){
             blinkTimes++;
+        }
+
+        /**
+         *うなずき
+         */
+        roll = memeRealtimeData.getRoll();
+        pitch = (int)memeRealtimeData.getPitch();
+        yaw = memeRealtimeData.getYaw();
+        acc_x = memeRealtimeData.getAccX();
+        acc_y = memeRealtimeData.getAccY();
+        acc_z = memeRealtimeData.getAccZ();
+        _pitch = Math.floor(memeRealtimeData.getPitch()) / 6;
+        if (_maxPitch <= _pitch) {
+            _maxPitch = _pitch;
+        }
+        else {
+            _nodtimes++;
+            if (_nodtimes > 7) {
+                nodtimes++;
+                _nodtimes = 0;
+                _maxPitch = -50;
+            }
         }
     }
 
@@ -255,8 +315,10 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
         Log.d(TAG, "write run");
         try {
             fos = new FileOutputStream(FILE_PATH,true);
-            for (int i = 0; i < wellnessArray.size(); i++) {
-                String outStr = outTimeArray.get(i) + ":" + outWellnessArray.get(i) + ",";
+            String csvtmp = "time,heartbeat,blink,nods" + "\n";
+            fos.write(csvtmp.getBytes());
+            for (int i = 0; i < heartbeatArray.size(); i++) {
+                String outStr = outTimeArray.get(i) + "," + outheartbeatArray.get(i) + "," + blinkArray.get(i) + "," + nodsArray.get(i) + "\n";
                 fos.write(outStr.getBytes());
             }
             fos.close();
@@ -290,6 +352,10 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
                 } else if (wearlableAppRunning) {
                     // TODO: 2016/04/12 グラフの描画開始
                     graphDrawing = true;
+                    if (timerrunning == false) {
+                        timer.schedule(timertask, 0, 1000);
+                        timerrunning = true;
+                    }
                 }
             }
         });
@@ -300,6 +366,11 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
             public void onClick(View v) {
                 new FinishWearableActivityThread().start();
                 fileOutPut();
+                timer.cancel();
+                wearlableAppRunning = false;
+                graphDrawing = false;
+                timerrunning = false;
+                startWearableActivityBtn.setText("Start Wearable App");
             }
         });
 
@@ -324,19 +395,22 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
 
 
         /**
-         *
          * @param createChart(ArrayList, GraphTitle, Ymin, Ymax)
          */
         heartbeatgraph = (GraphView) findViewById(R.id.graphview);
         // 初期化
         // グラフに表示するデータを生成
-        wellnessArray = new ArrayList<Integer>();
+        heartbeatArray = new ArrayList<Integer>();
         // グラフを生成
-        heartbeatgraph.createChart(wellnessArray, "心拍数", 40.0d, 150.0d);
+        heartbeatgraph.createChart(heartbeatArray, "心拍数", 40.0d, 150.0d);
 
         blinkgraph = (GraphView)findViewById(R.id.blinkgraph);
         blinkArray = new ArrayList<Integer>();
-        blinkgraph.createChart(blinkArray, "まばたき", 0.0d, 10.0d);
+        blinkgraph.createChart2(blinkArray, "まばたき", 0.0d, 5.0d);
+
+        nodsgraph = (GraphView)findViewById(R.id.nodsgraph); 
+        nodsArray = new ArrayList<>();
+        nodsgraph.createChart3(nodsArray, "うなずき", 0.0d, 5.0d);
     }
 
     private void jinsinit() {
@@ -370,23 +444,46 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
                 Log.d("TAG", "DataItem changed: " + event.getDataItem().getUri());
                 // 更新されたデータを取得する
                 DataMap dataMap = DataMap.fromByteArray(event.getDataItem().getData());
-//                data = dataMap.getInt("key");
                 Log.d(TAG, "data : " + dataMap.getInt(HEART_RATE_DATA_KEY) + " : " + dataMap.getLong(NOW_UNIXTIME_KEY));
-                outWellnessArray.add(dataMap.getInt(HEART_RATE_DATA_KEY));
+                outheartbeatArray.add(dataMap.getInt(HEART_RATE_DATA_KEY));
                 outTimeArray.add(dataMap.getLong(NOW_UNIXTIME_KEY));
-                drawGraph(dataMap.getInt(HEART_RATE_DATA_KEY), dataMap.getLong(NOW_UNIXTIME_KEY));
+                heartbaets = dataMap.getInt(HEART_RATE_DATA_KEY);
             }
         }
     }
 
-    private void drawGraph(int anInt, long aLong) {
+//    private void drawGraph(int anInt, long aLong) {
+//        if (graphDrawing) {
+//            heartbeatArray.add(anInt);
+//            heartbeatgraph.createChart(heartbeatArray, "心拍数", 40.0d, 150.0d);
+//            heartbeatgraph.invalidate();
+//            blinkArray.add(blinkTimes);
+//            blinkTimes = 0;
+//            blinkgraph.createChart2(blinkArray, "まばたき", 0.0d, 10.0d);
+//            blinkgraph.invalidate();
+//            nodsArray.add(nodtimes);
+//            nodtimes = 0;
+//            maxPitch = -50;
+//            _maxPitch = -50;
+//            nodsgraph.invalidate();
+//        }
+//    }
+
+    private void drawGraph() {
         if (graphDrawing) {
-            wellnessArray.add(anInt);
-            heartbeatgraph.createChart(wellnessArray, "心拍数", 40.0d, 150.0d);
+            heartbeatArray.add(heartbaets);
+            heartbeatgraph.createChart(heartbeatArray, "心拍数", 40.0d, 150.0d);
             heartbeatgraph.invalidate();
             blinkArray.add(blinkTimes);
-            blinkgraph.createChart(blinkArray, "まばたき", 0.0d, 10.0d);
+            blinkTimes = 0;
+            blinkgraph.createChart2(blinkArray, "まばたき", 0.0d, 5.0d);
             blinkgraph.invalidate();
+            nodsArray.add(nodtimes);
+            nodtimes = 0;
+            maxPitch = -50;
+            _maxPitch = -50;
+            nodsgraph.createChart3(nodsArray, "うなずき", 0.0d, 5.0d);
+            nodsgraph.invalidate();
         }
     }
 
@@ -417,6 +514,48 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.C
                     Log.d(TAG, "send error");
                 }
             }
+        }
+    }
+
+    private class CountDown extends CountDownTimer {
+
+        public CountDown(long millisInFuture, long countDownInterval) {
+            super(millisInFuture, countDownInterval);
+        }
+
+        @Override
+        public void onTick(long millisUntilFinished) {
+
+        }
+
+        @Override
+        public void onFinish() {
+            memeLib.stopScan();
+            if (scannedAddresses.size() == 0) {
+                Toast.makeText(MainActivity.this, "JiNSMEME not found", Toast.LENGTH_SHORT).show();
+            }
+        }
+    }
+
+    private class MyTimerTask extends TimerTask {
+
+        private Handler handler;
+        private Context context;
+
+        public MyTimerTask(Context context) {
+            handler = new Handler();
+            this.context = context;
+        }
+
+        @Override
+        public void run() {
+            handler.post(new Runnable() {
+                @Override
+                public void run() {
+                    drawGraph();
+                }
+            });
+
         }
     }
 }

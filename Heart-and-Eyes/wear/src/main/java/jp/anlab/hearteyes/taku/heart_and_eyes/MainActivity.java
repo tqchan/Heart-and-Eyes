@@ -88,7 +88,7 @@ public class MainActivity extends Activity implements SensorEventListener, Googl
                 .addConnectionCallbacks(this)
                 .addOnConnectionFailedListener(this)
                 .build();
-        Log.d(TAG, "");
+//        Log.d(TAG, "");
     }
 
     @Override
@@ -99,7 +99,7 @@ public class MainActivity extends Activity implements SensorEventListener, Googl
         sensorManager = (SensorManager)getSystemService(SENSOR_SERVICE);
         heartrateSensor = sensorManager.getDefaultSensor(Sensor.TYPE_HEART_RATE);
         if (heartrateSensor != null) {
-            sensorManager.registerListener(this,heartrateSensor,(int)1e6);
+            sensorManager.registerListener(this, heartrateSensor, (int)1e6);
         } else {
             Log.d(TAG, "heartrateSensor is null");
         }

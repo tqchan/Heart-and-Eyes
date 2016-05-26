@@ -82,6 +82,9 @@
                 <include
                     android:id="@+id/blink_layout"
                     layout="@layout/blink" />
+                <include
+                    android:id="@+id/nodsgraph_layout"
+                    layout="@layout/nods" />
 
             </ViewFlipper>
         <!--</LinearLayout>-->
